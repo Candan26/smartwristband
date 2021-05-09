@@ -78,24 +78,34 @@ class skinResistance {
         this._status = value;
     }
 }
+
 class hrSpo2 {
-    constructor(date, id, personName, personSurname, hrValue, spo2Value, status) {
+    constructor(date, id, personName, personSurname, hrValue, spo2Value, iredValue, redValue, status) {
         this._date = date;
         this._id = id;
         this._personName = personName;
         this._personSurname = personSurname;
         this._hrValue = hrValue;
         this._spo2Value = spo2Value;
+        this._ired = iredValue;
+        this._red = redValue;
         this._status = status;
-        this._parsedHR = this.parseRawData(hrValue);
-        this._parsedSPO2 = this.parseRawData(spo2Value);
-
+        this._parsedHR = this.parseRawData(hrValue, "byte");
+        this._parsedSPO2 = this.parseRawData(spo2Value, "byte");
+        this._parsedIRed = this.parseRawData(iredValue, "int");
+        this._parsedRed = this.parseRawData(redValue, "int");
     }
 
-    parseRawData(stringToParse) {
+    parseRawData(stringToParse, type) {
         let array = [];
-        for (var i = 0; i < stringToParse.length; i = i + 2) {
-            var mySubString = "0x" + stringToParse.substring(i, i + 2);
+        let parser = 0;
+        if(type === "byte"){
+            parser = 2;
+        }else if(type === "int"){
+            parser = 8;
+        }
+        for (var i = 0; i < stringToParse.length; i = i + parser) {
+            var mySubString = "0x" + stringToParse.substring(i, i + parser);
             array.push(parseInt(mySubString, 16));
         }
         return array;
@@ -107,6 +117,14 @@ class hrSpo2 {
 
     getParsedSPO2Data() {
         return this._parsedSPO2;
+    }
+
+    getParsedIRedData(){
+        return this._parsedIRed;
+    }
+
+    getParsedRedData(){
+        return this._parsedRed;
     }
 
     get date() {
@@ -157,6 +175,22 @@ class hrSpo2 {
         this._spo2Value = value;
     }
 
+    get redValue() {
+        return this._red;
+    }
+
+    set redValue(value) {
+        this._red = value;
+    }
+
+    get iredValue() {
+        return this._ired;
+    }
+
+    set iredValue(value) {
+        this._ired = value;
+    }
+
     get status() {
         return this._status;
     }
@@ -165,6 +199,7 @@ class hrSpo2 {
         this._status = value;
     }
 }
+
 class ecgRr {
     constructor(date, id, personName, personSurname, ecgValue, rrValue, status) {
         this._date = date;
@@ -174,15 +209,21 @@ class ecgRr {
         this._ecgValue = ecgValue;
         this._rrValue = rrValue;
         this._status = status;
-        this._parsedECG = this.parseRawData(ecgValue);
-        this._parsedRR = this.parseRawData(rrValue);
+        this._parsedECG = this.parseRawData(ecgValue,"short");
+        this._parsedRR = this.parseRawData(rrValue,"int");
 
     }
 
-    parseRawData(stringToParse) {
+    parseRawData(stringToParse, type) {
         let array = [];
-        for (var i = 0; i < stringToParse.length; i = i + 8) {
-            var mySubString = "0x" + stringToParse.substring(i, i +8);
+        let parser = 0;
+        if(type === "short"){
+            parser = 4
+        }else if(type === "int"){
+            parser = 8
+        }
+        for (var i = 0; i < stringToParse.length; i = i + parser) {
+            var mySubString = "0x" + stringToParse.substring(i, i + parser);
             array.push(parseInt(mySubString, 16));
         }
         return array;
@@ -252,30 +293,7 @@ class ecgRr {
         this._status = value;
     }
 }
-function parseHexToFloat(str) {
-    var float = 0, sign,  exp,
-        int = 0, multi = 1;
-    if (/^0x/.exec(str)) {
-        int = parseInt(str, 16);
-    } else {
-        for (var i = str.length - 1; i >= 0; i -= 1) {
-            if (str.charCodeAt(i) > 255) {
-                console.log('Wrong string parametr');
-                return false;
-            }
-            int += str.charCodeAt(i) * multi;
-            multi *= 256;
-        }
-    }
-    sign = (int >>> 31) ? -1 : 1;
-    exp = (int >>> 23 & 0xff) - 127;
-    var mantissa = ((int & 0x7fffff) + 0x800000).toString(2);
-    for (i = 0; i < mantissa.length; i += 1) {
-        float += parseInt(mantissa[i]) ? Math.pow(2, exp) : 0;
-        exp--;
-    }
-    return float * sign;
-}
+
 class tempAndHumidity {
     constructor(date, id, personName, personSurname, temperatureValue, humidityValue, status) {
         this._date = date;
@@ -364,11 +382,38 @@ class tempAndHumidity {
     }
 }
 
+function parseHexToFloat(str) {
+    var float = 0, sign,  exp,
+        int = 0, multi = 1;
+    if (/^0x/.exec(str)) {
+        int = parseInt(str, 16);
+    } else {
+        for (var i = str.length - 1; i >= 0; i -= 1) {
+            if (str.charCodeAt(i) > 255) {
+                console.log('Wrong string parametr');
+                return false;
+            }
+            int += str.charCodeAt(i) * multi;
+            multi *= 256;
+        }
+    }
+    sign = (int >>> 31) ? -1 : 1;
+    exp = (int >>> 23 & 0xff) - 127;
+    var mantissa = ((int & 0x7fffff) + 0x800000).toString(2);
+    for (i = 0; i < mantissa.length; i += 1) {
+        float += parseInt(mantissa[i]) ? Math.pow(2, exp) : 0;
+        exp--;
+    }
+    return float * sign;
+}
 // Get Writing Data
 export function getSRData(from, to) {
-    //http://165.22.200.210:7547
     const url = "http://"+IP+":"+PORT+"/api/skin/date/?date_from=" + Date.parse(from) + "&date_to=" + Date.parse(to);
-    //const url = "http://165.22.200.210:7547/api/skin/findAll/?max=100";
+    return getRawData(url, SR);
+}
+
+export  function getSRDataOnline(){
+    const url = "http://"+IP+":"+PORT+"/api/skin/getQueue";
     return getRawData(url, SR);
 }
 
@@ -377,14 +422,33 @@ export function getECGRRData(from, to) {
     return getRawData(url, ECG);
 }
 
+export  function getECGRRDataOnline(){
+    const url = "http://"+IP+":"+PORT+"/api/max3003/getQueue";
+    return getRawData(url, ECG);
+}
+
 export function getHRSPO2Data(from, to) {
     const url = "http://"+IP+":"+PORT+"/api/max30102/date/?date_from=" + Date.parse(from) + "&date_to=" + Date.parse(to);
+    return getRawData(url, HR);
+}
+
+export  function getHRSPO2DataOnline(){
+    const url = "http://"+IP+":"+PORT+"/api/max30102/getQueue";
     return getRawData(url, HR);
 }
 
 export function getTemperatureHumidityData(from, to) {
     const url = "http://"+IP+":"+PORT+"/api/si7021/date/?date_from=" + Date.parse(from) + "&date_to=" + Date.parse(to);
     return getRawData(url, TH);
+}
+
+export  function getTemperatureHumidityDataOnline(){
+    const url = "http://"+IP+":"+PORT+"/api/si7021/getQueue";
+    return getRawData(url, TH);
+}
+
+function isArray(what) {
+    return Object.prototype.toString.call(what) === '[object Array]';
 }
 
 function getRawData(url, data_type) {
@@ -395,12 +459,14 @@ function getRawData(url, data_type) {
         .then((res) => {
             let jsonArrayString = JSON.stringify(res);
             let jsonArray = JSON.parse(jsonArrayString);
-            console.log(jsonArray)
             let returnArray = []
-            for (let i = 0; i < jsonArray.length; i++) { // jsonArray.length
-                returnArray.push(getParsedData(jsonArray[i], data_type));
+            if(isArray(jsonArray)) {
+                for (let i = 0; i < jsonArray.length; i++) { // jsonArray.length
+                    returnArray.push(getParsedData(jsonArray[i], data_type));
+                }
+            } else {
+                returnArray.push(getParsedData(jsonArray, data_type));
             }
-            console.log(returnArray);
             return returnArray;
         })
 }
@@ -410,7 +476,7 @@ function getParsedData(jsonObj, type) {
     if (type === SR)
         ro = new skinResistance(jsonObj.date, jsonObj.id, jsonObj.personName, jsonObj.personSurname, jsonObj.srValue, jsonObj.status);
     else if (type === HR)
-        ro = new hrSpo2(jsonObj.date, jsonObj.id, jsonObj.personName, jsonObj.personSurname, jsonObj.hr, jsonObj.spo2, jsonObj.status);
+        ro = new hrSpo2(jsonObj.date, jsonObj.id, jsonObj.personName, jsonObj.personSurname, jsonObj.hr, jsonObj.spo2,jsonObj.ired,jsonObj.red, jsonObj.status);
     else if(type === ECG)
         ro = new ecgRr(jsonObj.date, jsonObj.id, jsonObj.personName, jsonObj.personSurname, jsonObj.ecg, jsonObj.rr, jsonObj.status);
     else if(type === TH)
