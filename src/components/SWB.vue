@@ -19,30 +19,22 @@
           Get Online Data <b> = {{ checked }}</b>
         </b-form-checkbox>
 
-        <b-dropdown id="dropdown-1" text="Select online sensor type" size="sm"  >
-          <b-dropdown-item>
-            <font-awesome-icon icon="user-shield" size="1x"></font-awesome-icon>
-            Skin Resistance
-          </b-dropdown-item>
-          <b-dropdown-item>
-            <font-awesome-icon icon="heartbeat" size="1x"></font-awesome-icon>
-            HR & SPO2
-          </b-dropdown-item>
-          <b-dropdown-item>
-            <font-awesome-icon icon="signature" size="1x"></font-awesome-icon>
-            ECG & RR
-          </b-dropdown-item>
-          <b-dropdown-item>
-            <font-awesome-icon icon="temperature-high" size="1x"></font-awesome-icon>
-            Temp & Humidity
-          </b-dropdown-item>
-        </b-dropdown>
+
       </div>
     </div>
     <!--Raw data imp -->
     <div>
       <h1>Data observation from raw data</h1>
-
+      <div>
+        <b-form-checkbox-group
+            v-model="selectedCb"
+            :options="options"
+            class="mb-3"
+            value-field="item"
+            text-field="name"
+            disabled-field="notEnabled"
+        ></b-form-checkbox-group>
+      </div>
       <a class="btn btn-lg btn-outline-warning" @click="skinResistanceButtonPressed" href="#">
         <font-awesome-icon icon="user-shield" size="3x"/>
         Skin Resistance</a>
@@ -84,43 +76,51 @@
 
     <div class="onlineData" v-show="hideOnlineData">
 
-      <h1>DYNAMIC ECG DATA </h1>
-      <div id="chart1">
+
+      <div class="divChardEcgRr" v-show="ER">
+        <h1>DYNAMIC ECG DATA </h1>
         <apexchart type="line" height="350" :options="chartOptionsReal" :series="seriesECG"></apexchart>
       </div>
 
-      <h1>DYNAMIC RR DATA </h1>
-      <div id="chart2">
+
+      <div class="divChardEcgRr" v-show="ER">
+        <h1>DYNAMIC RR DATA </h1>
         <apexchart type="line" height="350" :options="chartOptionsReal" :series="seriesRR"></apexchart>
       </div>
 
-      <h1>DYNAMIC HR DATA </h1>
-      <div id="chart3">
+
+      <div class="divChardHrSpo2" v-show="HR">
+        <h1>DYNAMIC HR DATA </h1>
         <apexchart type="line" height="350" :options="chartOptionsReal" :series="seriesHR"></apexchart>
       </div>
 
-      <h1>DYNAMIC SPO2 DATA </h1>
-      <div id="chart4">
+
+      <div class="divChardHrSpo2" v-show="HR">
+        <h1>DYNAMIC SPO2 DATA </h1>
         <apexchart type="line" height="350" :options="chartOptionsReal" :series="seriesSPO2"></apexchart>
       </div>
 
-      <h1>DYNAMIC HR/IRED DATA </h1>
-      <div id="chart8">
+
+      <div class="divChardHrSpo2" v-show="HR">
+        <h1>DYNAMIC HR/IRED DATA </h1>
         <apexchart type="line" height="350" :options="chartOptionsRedIredBoth" :series="seriesRedIredBoth"></apexchart>
       </div>
 
-      <h1>DYNAMIC TEMPERATURE DATA </h1>
-      <div id="chart5">
+
+      <div class="divChardHumTemp" v-show="HT">
+        <h1>DYNAMIC TEMPERATURE DATA </h1>
         <apexchart type="line" height="350" :options="chartOptionsReal" :series="seriesTemp"></apexchart>
       </div>
 
-      <h1>DYNAMIC HUMIDITY DATA </h1>
-      <div id="chart6">
+
+      <div class="divChardHumTemp"  v-show="HT">
+        <h1>DYNAMIC HUMIDITY DATA </h1>
         <apexchart type="line" height="350" :options="chartOptionsReal" :series="seriesHumid"></apexchart>
       </div>
 
-      <h1>DYNAMIC SKIN RESISTANCE DATA </h1>
-      <div id="chart7">
+
+      <div class="divChartSkin"  v-show="SR">
+        <h1>DYNAMIC SKIN RESISTANCE DATA </h1>
         <apexchart type="line" height="350" :options="chartOptionsReal" :series="seriesSkin"></apexchart>
       </div>
     </div>
@@ -162,16 +162,18 @@ export default {
     return {
       checked: false,
       hideOnlineData: false,
+      ER: false,
+      SR: false,
+      HR: false,
+      HT: false,
       show: false,
       datetime1: null,
       datetime2: null,
       intervalStatus: null,
-      apexGraph:
-          {
+      apexGraph: {
             dataFirst: [],
             dataSecond: []
-          }
-      ,
+          },
       apexGraphReal: {
         ecg: [],
         rr: [],
@@ -191,6 +193,13 @@ export default {
         value: [],
         valueSecond: [],
       }],
+      selectedCb: [],
+      options: [
+        { item: ECG_RR, name: 'ECG & RR' },
+        { item: HR_SPO2, name: 'HR & SPO2' },
+        { item: SR, name: 'SKIN ' },
+        { item: TEMP_HUMIDITY, name: 'HUMIDITY TEMPERATURE' }
+      ],
       chartOptions: {
         chart: {
           id: 'fb',
@@ -205,7 +214,6 @@ export default {
           }
         },
       },
-
       seriesLine2: [{
         data: []
       }],
@@ -249,7 +257,8 @@ export default {
             enabled: true,
             easing: 'linear',
             dynamicAnimation: {
-              speed: 300
+              enabled: true,
+              speed: 900
             }
           },
           toolbar: {
@@ -305,7 +314,6 @@ export default {
           }
         }
       },
-
       seriesArea: [{
         data: []
       }],
@@ -323,7 +331,6 @@ export default {
           }
         }
       },
-
     }
   },
   methods: {
@@ -602,42 +609,58 @@ export default {
     startOnlineStream() {
       let that = this;
       this.intervalStatus = setInterval(function () {
+        if(that.selectedCb.includes(ECG_RR)){
+          getECGRRDataOnline().then((res) => {
+            //ECGRROnlineArray[0]=res;
+            ECGRROnlineArray.push(res);
+            if (ECGRROnlineArray.length > 2) {
+              ECGRROnlineArray =ECGRROnlineArray.slice(ECGRROnlineArray.length-10, ECGRROnlineArray.length);
+            }
+            that.updateGraphValuesReal(ECGRROnlineArray, ECG_RR);
+          })
+          that.ER = true;
+        }else{
+          that.ER = false;
+        }
 
-        getECGRRDataOnline().then((res) => {
-          ECGRROnlineArray.push(res);
-          if (ECGRROnlineArray.length > 50) {
-            ECGRROnlineArray = [];
-          }
-          that.updateGraphValuesReal(ECGRROnlineArray, ECG_RR);
-        })
+        if(that.selectedCb.includes(HR_SPO2)){
+          getHRSPO2DataOnline().then((res) => {
+            HRSPO2OnlineArray.push(res);
+            if (HRSPO2OnlineArray.length > 100) {
+              HRSPO2OnlineArray = HRSPO2OnlineArray.slice(HRSPO2OnlineArray.length-10, HRSPO2OnlineArray.length);
+            }
+            that.updateGraphValuesReal(HRSPO2OnlineArray, HR_SPO2);
+          });
+          that.HR = true;
+        }else {
+          that.HR = false;
+        }
 
-        getHRSPO2DataOnline().then((res) => {
-          HRSPO2OnlineArray.push(res);
-          if (HRSPO2OnlineArray.length > 100) {
-            HRSPO2OnlineArray = [];
-          }
-          that.updateGraphValuesReal(HRSPO2OnlineArray, HR_SPO2);
+        if(that.selectedCb.includes(TEMP_HUMIDITY)){
+          getTemperatureHumidityDataOnline().then((res) => {
+            THOnlineArray.push(res);
+            if (THOnlineArray.length > 5) {
+              THOnlineArray = THOnlineArray.slice(THOnlineArray.length-10, THOnlineArray.length);
+            }
+            that.updateGraphValuesReal(THOnlineArray, TEMP_HUMIDITY);
+          });
+          that.HT = true;
+        }else {
+          that.HT = false;
+        }
 
-        })
-
-        getTemperatureHumidityDataOnline().then((res) => {
-          THOnlineArray.push(res);
-          if (THOnlineArray.length > 5) {
-            THOnlineArray = [];
-          }
-          that.updateGraphValuesReal(THOnlineArray, TEMP_HUMIDITY);
-
-        })
-
-
-        getSRDataOnline().then((res) => {
-          SKINOnlineArray.push(res);
-          if (SKINOnlineArray.length > 100) {
-            SKINOnlineArray = [];
-          }
-          that.updateGraphValuesReal(SKINOnlineArray, SR);
-        })
-
+        if(that.selectedCb.includes(SR)){
+          getSRDataOnline().then((res) => {
+            SKINOnlineArray.push(res);
+            if (SKINOnlineArray.length >10) {
+              SKINOnlineArray = SKINOnlineArray.slice(SKINOnlineArray.length-10 , SKINOnlineArray.length);
+            }
+            that.updateGraphValuesReal(SKINOnlineArray, SR);
+          });
+          that.SR = true;
+        }else {
+          that.SR = false;
+        }
 
       }, 500);
     }
