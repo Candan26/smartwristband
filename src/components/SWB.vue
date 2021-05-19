@@ -34,7 +34,10 @@
             text-field="name"
             disabled-field="notEnabled"
         ></b-form-checkbox-group>
+        <input type="range" min="1" max="1000" step="1" v-model ="vmiSpeedOfAnimation"><span v-text="vmiSpeedOfAnimation"></span>
+
       </div>
+
       <a class="btn btn-lg btn-outline-warning" @click="skinResistanceButtonPressed" href="#">
         <font-awesome-icon icon="user-shield" size="3x"/>
         Skin Resistance</a>
@@ -79,49 +82,49 @@
 
       <div class="divChardEcgRr" v-show="ER">
         <h1>DYNAMIC ECG DATA </h1>
-        <apexchart type="line" height="350" :options="chartOptionsReal" :series="seriesECG"></apexchart>
+        <apexchart type="line" height="350" ref="chart" :options="chartOptionsReal" :series="seriesECG"></apexchart>
       </div>
 
 
       <div class="divChardEcgRr" v-show="ER">
         <h1>DYNAMIC RR DATA </h1>
-        <apexchart type="line" height="350" :options="chartOptionsReal" :series="seriesRR"></apexchart>
+        <apexchart type="line" height="350"  ref="chart" :options="chartOptionsReal" :series="seriesRR"></apexchart>
       </div>
 
 
       <div class="divChardHrSpo2" v-show="HR">
         <h1>DYNAMIC HR DATA </h1>
-        <apexchart type="line" height="350" :options="chartOptionsReal" :series="seriesHR"></apexchart>
+        <apexchart type="line" height="350"  ref="chart" :options="chartOptionsReal" :series="seriesHR"></apexchart>
       </div>
 
 
       <div class="divChardHrSpo2" v-show="HR">
         <h1>DYNAMIC SPO2 DATA </h1>
-        <apexchart type="line" height="350" :options="chartOptionsReal" :series="seriesSPO2"></apexchart>
+        <apexchart type="line" height="350"  ref="chart" :options="chartOptionsReal" :series="seriesSPO2"></apexchart>
       </div>
 
 
       <div class="divChardHrSpo2" v-show="HR">
         <h1>DYNAMIC HR/IRED DATA </h1>
-        <apexchart type="line" height="350" :options="chartOptionsRedIredBoth" :series="seriesRedIredBoth"></apexchart>
+        <apexchart type="line" height="350"  ref="chart" :options="chartOptionsRedIredBoth" :series="seriesRedIredBoth"></apexchart>
       </div>
 
 
       <div class="divChardHumTemp" v-show="HT">
         <h1>DYNAMIC TEMPERATURE DATA </h1>
-        <apexchart type="line" height="350" :options="chartOptionsReal" :series="seriesTemp"></apexchart>
+        <apexchart type="line" height="350"  ref="chart" :options="chartOptionsReal" :series="seriesTemp"></apexchart>
       </div>
 
 
       <div class="divChardHumTemp"  v-show="HT">
         <h1>DYNAMIC HUMIDITY DATA </h1>
-        <apexchart type="line" height="350" :options="chartOptionsReal" :series="seriesHumid"></apexchart>
+        <apexchart type="line" height="350"  ref="chart" :options="chartOptionsReal" :series="seriesHumid"></apexchart>
       </div>
 
 
       <div class="divChartSkin"  v-show="SR">
         <h1>DYNAMIC SKIN RESISTANCE DATA </h1>
-        <apexchart type="line" height="350" :options="chartOptionsReal" :series="seriesSkin"></apexchart>
+        <apexchart type="line" height="350"  ref="chart" :options="chartOptionsReal" :series="seriesSkin"></apexchart>
       </div>
     </div>
 
@@ -138,12 +141,15 @@ import {getECGRRDataOnline} from '../js/dao';
 import {getSRData} from '../js/dao';
 import {getSRDataOnline} from '../js/dao';
 
+let ecgCounter = 0;
+
 const SR = "SR";
 const HR_SPO2 = "HR";
 const ECG_RR = "ECG";
 const TEMP_HUMIDITY = "TH";
 //
-let ECGRROnlineArray = [];
+//let ECGRROnlineArray = [];
+let ECGOnlineArray = [];
 let HRSPO2OnlineArray = [];
 let THOnlineArray = [];
 let SKINOnlineArray = [];
@@ -160,6 +166,8 @@ export default {
   name: "SWB",
   data() {
     return {
+      vmiSpeedOfAnimation: 1000,
+      intervalStatusECG: null,
       checked: false,
       hideOnlineData: false,
       ER: false,
@@ -258,7 +266,7 @@ export default {
             easing: 'linear',
             dynamicAnimation: {
               enabled: true,
-              speed: 900
+              speed: this.vmiSpeedOfAnimation
             }
           },
           toolbar: {
@@ -276,15 +284,15 @@ export default {
         },
         title: {
           text: 'Dynamic  Chart',
-          align: 'center'
+          align: 'left'
         },
         markers: {
           size: 0
         },
+        xaxis: {
+          type: 'numeric',
+        },
         yaxis: {
-          labels: {
-            minWidth: 500
-          }
         },
         legend: {
           show: false
@@ -581,7 +589,6 @@ export default {
         clearInterval(this.intervalStatus);
       } else {
         this.hideOnlineData = true;
-
         this.startOnlineStream()
       }
 
@@ -606,21 +613,37 @@ export default {
       this.setGraphData("chartFirst", array2dFirstGraph);
       this.setGraphData("chartSecond", array2dSecondGraph);
     },
+    startOnlineECGData(){
+      ecgCounter = ecgCounter +1
+      this.apexGraphReal.ecg.push([ecgCounter, ECGOnlineArray.shift()]);
+
+      // TODO Fill
+      if(ecgCounter >= 150) {
+        ecgCounter = 0
+        this.apexGraphReal.ecg = []
+        //this.setGraphData( this.apexGraphReal.ecg,CHART_ECG )
+      }
+      console.log(this.apexGraphReal.ecg)
+      this.seriesECG = [{
+        data: this.apexGraphReal.ecg
+      }]
+      //this.setGraphData( this.apexGraphReal.ecg,CHART_ECG )
+    },
     startOnlineStream() {
       let that = this;
       this.intervalStatus = setInterval(function () {
         if(that.selectedCb.includes(ECG_RR)){
           getECGRRDataOnline().then((res) => {
-            //ECGRROnlineArray[0]=res;
-            ECGRROnlineArray.push(res);
-            if (ECGRROnlineArray.length > 2) {
-              ECGRROnlineArray =ECGRROnlineArray.slice(ECGRROnlineArray.length-10, ECGRROnlineArray.length);
+            let ar = [];
+            ar = res[0].getParsedECGData()
+            for (let i = 0; i < ar.length; i++) {
+              ECGOnlineArray.push(ar[i])
             }
-            that.updateGraphValuesReal(ECGRROnlineArray, ECG_RR);
           })
           that.ER = true;
         }else{
           that.ER = false;
+          clearInterval(that.intervalStatusECG);
         }
 
         if(that.selectedCb.includes(HR_SPO2)){
@@ -639,7 +662,7 @@ export default {
         if(that.selectedCb.includes(TEMP_HUMIDITY)){
           getTemperatureHumidityDataOnline().then((res) => {
             THOnlineArray.push(res);
-            if (THOnlineArray.length > 5) {
+            if (THOnlineArray.length > 100) {
               THOnlineArray = THOnlineArray.slice(THOnlineArray.length-10, THOnlineArray.length);
             }
             that.updateGraphValuesReal(THOnlineArray, TEMP_HUMIDITY);
@@ -652,7 +675,7 @@ export default {
         if(that.selectedCb.includes(SR)){
           getSRDataOnline().then((res) => {
             SKINOnlineArray.push(res);
-            if (SKINOnlineArray.length >10) {
+            if (SKINOnlineArray.length >100) {
               SKINOnlineArray = SKINOnlineArray.slice(SKINOnlineArray.length-10 , SKINOnlineArray.length);
             }
             that.updateGraphValuesReal(SKINOnlineArray, SR);
@@ -663,7 +686,16 @@ export default {
         }
 
       }, 500);
+
+      if(that.selectedCb.includes(ECG_RR)) {
+
+        this.intervalStatusECG = window.setInterval(function () {
+          console.log("entered online data");
+          that.startOnlineECGData()
+        }, 50)
+      }
     }
+
   },
   created: function () {
     this.startOnlineStream();
