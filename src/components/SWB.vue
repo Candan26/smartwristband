@@ -55,7 +55,7 @@
         <font-awesome-icon icon="temperature-high" size="3x"/>
         Temp & Humidity</a>
 
-      <b-dropdown text="Select Date(Y/M/D/H/M/S)" class="m-md-2">
+      <b-dropdown text="Select Date(Y/M/D/H/M/S)" class="m-md-2" boundary="scrollParent" >
         <b-dropdown-item v-for="(item, key) in reportData" :key="key" :value="item.text"
                          @click="updateGraphFromDropDown(item.text)">
           {{ item.text }}
@@ -390,10 +390,29 @@ export default {
         let date = Date.parse(array[i].date)
         const td = new Date(date);
         baseValue = getBaseValue(td);
-        this.reportData.push({text: baseValue, value: firstArray, valueSecond: secondArray});
+        if(sensor_type === ECG_RR){
+          let ta = []
+          let tb = []
+          for (let m = 0 ; m < firstArray.length ; m +=300 ){
+              ta = firstArray.slice(m, m + 300 );
+              tb = secondArray.slice(m, m+ 300);
+              let delimeter =  m / 300;
+            this.reportData.push({text: baseValue +"/" +delimeter, value: ta, valueSecond: tb});
+          }
+          this.reportData.push({text: baseValue + "Set", value: firstArray, valueSecond: secondArray});
+        }else {
+          this.reportData.push({text: baseValue, value: firstArray, valueSecond: secondArray});
+        }
+
         let tmpArray = firstArray;
         let tmpArray1 = secondArray;
+        if(i > 1 )
+          continue;
         for (let j = 0; j < tmpArray.length; j++) {
+          if(sensor_type === ECG_RR){
+            if(j > 300)
+              continue;
+          }
           this.apexGraph.dataFirst.push([timeCounter++, tmpArray[j]]);
           if (j < tmpArray1.length + 1)
             this.apexGraph.dataSecond.push([timeCounter, tmpArray1[j]]);
