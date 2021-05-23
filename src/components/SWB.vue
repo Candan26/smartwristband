@@ -38,23 +38,28 @@
 
       </div>
 
-      <a class="btn btn-lg btn-outline-warning" @click="skinResistanceButtonPressed" href="#">
+      <a class="btn btn-md btn-outline-warning" @click="skinResistanceButtonPressed" href="#">
         <font-awesome-icon icon="user-shield" size="3x"/>
         Skin Resistance</a>
 
-      <a class="btn btn-lg btn-outline-success" @click="HRSPO2ButtonPressed" href="#">
+      <a class="btn btn-md btn-outline-success" @click="HRSPO2ButtonPressed" href="#">
         <font-awesome-icon icon="heartbeat" size="3x"/>
         HR & SPO2</a>
 
-      <a class="btn btn-lg btn-outline-primary" @click="ECGRRButtonPressed" href="#">
+      <a class="btn btn-md btn-outline-primary" @click="ECGRRButtonPressed" href="#">
         <font-awesome-icon icon="signature" size="3x"/>
         ECG & RR</a>
 
-      <a class="btn btn-lg btn-outline-danger" @click="temperatureHumidityButtonPressed" href="#">
+      <a class="btn btn-md btn-outline-danger" @click="temperatureHumidityButtonPressed" href="#">
         <font-awesome-icon icon="tint" size="3x"/>
         <font-awesome-icon icon="temperature-high" size="3x"/>
         Temp & Humidity</a>
 
+
+      <download-excel :fetch="fetchTodos" :name="fileNameExcel">
+        <button type="button" class="btn btn-md btn-outline-success">
+          <font-awesome-icon icon="file-excel" size="3x"/> Download Excel</button>
+      </download-excel>
       <b-dropdown text="Select Date(Y/M/D/H/M/S)" class="m-md-2" boundary="scrollParent" >
         <b-dropdown-item v-for="(item, key) in reportData" :key="key" :value="item.text"
                          @click="updateGraphFromDropDown(item.text)">
@@ -76,6 +81,7 @@
       </div>
 
     </b-overlay>
+
 
     <div class="onlineData" v-show="hideOnlineData">
 
@@ -166,6 +172,7 @@ export default {
   name: "SWB",
   data() {
     return {
+      fileNameExcel: "test",
       vmiSpeedOfAnimation: 1000,
       intervalStatusECG: null,
       checked: false,
@@ -342,6 +349,50 @@ export default {
     }
   },
   methods: {
+    async fetchTodos(){
+      if(this.datetime2 ===null || this.datetime1 === null){
+        alert("Select both date picker field");
+        return;
+      }
+    if(this.selectedCb.length ===0 ){
+        alert("Select one of checkbox");
+        return;
+      }
+      if(this.selectedCb.length > 1 ){
+        alert("Only one of field can be downloaded at once ");
+        return;
+      }
+      if(this.selectedCb.includes(SR)){
+        this.fileNameExcel="SkinResistanceData";
+        let response = await getSRData(this.datetime1, this.datetime2).then((res) => {
+          return res;
+        });
+        return response;
+      }
+      if(this.selectedCb.includes(HR_SPO2)){
+        this.fileNameExcel="HrSpo2Data";
+        let response = await getHRSPO2Data(this.datetime1, this.datetime2).then((res) => {
+          return res;
+        });
+        return response;
+      }
+      if(this.selectedCb.includes(ECG_RR)){
+        this.fileNameExcel="EcgRrData";
+        let response = await getECGRRData (this.datetime1, this.datetime2).then((res) => {
+          return res;
+        });
+        return response;
+      }
+      if(this.selectedCb.includes(TEMP_HUMIDITY)){
+        this.fileNameExcel="HumidityAndTemperatureData";
+        let response = await getTemperatureHumidityData(this.datetime1, this.datetime2).then((res) => {
+          return res;
+        });
+        return response;
+      }
+
+
+    },
     setDropDownDataAll(array, sensor_type) {
       let innerArray1 = [];
       let innerArray2 = [];

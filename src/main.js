@@ -13,12 +13,15 @@ import VueApexCharts from 'vue-apexcharts'
 import VueSpinners from 'vue-spinners'
 import { Datetime } from 'vue-datetime';
 import 'vue-datetime/dist/vue-datetime.css'
+import JsonExcel from "vue-json-excel";
+
 
 Vue.component('font-awesome-icon', FontAwesomeIcon)
 Vue.component('font-awesome-layers', FontAwesomeLayers)
 Vue.component('apexchart', VueApexCharts)
 Vue.component('font-awesome-layers-text', FontAwesomeLayersText)
 Vue.component('datetime', Datetime);
+Vue.component("downloadExcel", JsonExcel);
 
 Vue.use(VueSpinners)
 Vue.use(VueApexCharts)
