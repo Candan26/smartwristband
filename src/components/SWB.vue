@@ -365,28 +365,74 @@ export default {
       if(this.selectedCb.includes(SR)){
         this.fileNameExcel="SkinResistanceData";
         let response = await getSRData(this.datetime1, this.datetime2).then((res) => {
-          return res;
+          let returnArray = [];
+          for (let i = 0; i < res.length; i++) {
+            let parsed = res[i].getParsedData();
+            for (let j = 0; j < parsed.length; j++) {
+              let map = new Map();
+              map["SR"] = parsed[j];
+              returnArray.push(map);
+            }
+          }
+          return returnArray;
         });
         return response;
       }
       if(this.selectedCb.includes(HR_SPO2)){
         this.fileNameExcel="HrSpo2Data";
         let response = await getHRSPO2Data(this.datetime1, this.datetime2).then((res) => {
-          return res;
+          let returnArray = [];
+          for (let i = 0; i < res.length; i++) {
+            let parsedHR = res[i].getParsedHRData();
+            let parsedSPO2  = res[i].getParsedSPO2Data();
+            let parsedIred = res[i].getParsedIRedData();
+            let parsedRed= res[i].getParsedRedData();
+            for (let j = 0; j < parsedHR.length; j++) {
+              let map = new Map();
+              map["HR"] = parsedHR[j];
+              map["SPO2"] = parsedSPO2.shift();
+              map["IRED"] =  parsedIred.shift();
+              map["RED"] = parsedRed.shift();
+              returnArray.push(map);
+            }
+          }
+          return returnArray;
         });
         return response;
       }
       if(this.selectedCb.includes(ECG_RR)){
         this.fileNameExcel="EcgRrData";
         let response = await getECGRRData (this.datetime1, this.datetime2).then((res) => {
-          return res;
+          let returnArray = [];
+          for (let i = 0; i < res.length; i++) {
+            let parsedECG = res[i].getParsedECGData();
+            let parsedRR  = res[i].getParsedRRData();
+            for (let j = 0; j < parsedECG.length; j++) {
+              let map = new Map();
+              map["ECG"] = parsedECG[j];
+              map["RR"] = parsedRR.shift();
+              returnArray.push(map);
+            }
+          }
+          return returnArray;
         });
         return response;
       }
       if(this.selectedCb.includes(TEMP_HUMIDITY)){
         this.fileNameExcel="HumidityAndTemperatureData";
         let response = await getTemperatureHumidityData(this.datetime1, this.datetime2).then((res) => {
-          return res;
+          let returnArray = [];
+          for (let i = 0; i < res.length; i++) {
+            let parsedTemperatureData = res[i].getParsedTemperatureData();
+            let parsedHumidityValueData = res[i].getParsedHumidityValueData();
+            for (let j = 0; j < parsedTemperatureData.length; j++) {
+              let map = new Map();
+              map["TEMPERATURE"] = parsedTemperatureData[j];
+              map["HUMIDITY"] = parsedHumidityValueData.shift();
+              returnArray.push(map);
+            }
+          }
+          return returnArray;
         });
         return response;
       }
